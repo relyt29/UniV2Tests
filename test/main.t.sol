@@ -58,6 +58,10 @@ contract MainTest is Test {
         (uint256 reserveWISE, uint256 reserveWETH, ) = UNI_PAIR.getReserves();
         console.log("reserveWISE: %s", reserveWISE);
         console.log("reserveWETH: %s", reserveWETH);
+        console.log("WISE Token balanceOf Pair before deposit %s", WISE.balanceOf(WISE_WETH_PAIR));
+        console.log("WETH Token balanceOf Pair before deposit %s", WETH.balanceOf(WISE_WETH_PAIR));
+        console.log("WISE Token balanceOf Liquidity Provider after deposit %s", WISE.balanceOf(me));
+        console.log("WETH Token balanceOf Liquidity Provider Pair after deposit %s", WETH.balanceOf(me));
         uint256 correctRatioWETHforWISE = UNI_ROUTER.quote(
             2 ether, 
             reserveWISE,
@@ -83,6 +87,10 @@ contract MainTest is Test {
         (reserveWISE, reserveWETH, ) = UNI_PAIR.getReserves();
         console.log("reserveWISE: %s", reserveWISE);
         console.log("reserveWETH: %s", reserveWETH);
+        console.log("WISE Token balanceOf Pair after deposit %s", WISE.balanceOf(WISE_WETH_PAIR));
+        console.log("WETH Token balanceOf Pair after deposit %s", WETH.balanceOf(WISE_WETH_PAIR));
+        console.log("WISE Token balanceOf Liquidity Provider after deposit %s", WISE.balanceOf(me));
+        console.log("WETH Token balanceOf Liquidity Provider Pair after deposit %s", WETH.balanceOf(me));
 
         // at time t_1 record the amount of money yielded for selling WISE for WETH
         bq01 = UNI_ROUTER.getAmountsOut(1 ether, path);
