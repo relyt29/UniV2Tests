@@ -31,12 +31,27 @@ contract MainTest is Test {
             .target(WISE_TOKEN)
             .sig("balanceOf(address)")
             .with_key(me)
-            .checked_write(15 ether);
-        vm.deal(me, 100 ether);
+            .checked_write(1000 ether);
+        vm.deal(me, 1000 ether);
         vm.startPrank(me);
-        WETH.deposit{value: 15 ether}();
-        WETH.approve(UNI_ROUTER_V2, 15 ether);
-        WISE.approve(UNI_ROUTER_V2, 15 ether);
+        WETH.deposit{value: 150 ether}();
+        WETH.approve(UNI_ROUTER_V2, 150 ether);
+        WISE.approve(UNI_ROUTER_V2, 150 ether);
+        /*
+        another way to get more WISE to the `me` address
+
+        address[] memory path = new address[](2);
+        path[0] = WETH_TOKEN;
+        path[1] = WISE_TOKEN;
+        UNI_ROUTER.swapExactTokensForTokens(
+            100 ether,
+            0,
+            path,
+            me,
+            block.timestamp + 1000
+        );
+        */
+        console.log("WISE Token balanceOf Liquidity Provider before deposit %s", WISE.balanceOf(me));
         vm.stopPrank();
     }
 
@@ -45,8 +60,8 @@ contract MainTest is Test {
         address[] memory path = new address[](2);
         path[0] = WISE_TOKEN;
         path[1] = WETH_TOKEN;
-        uint256[] memory bq01 = UNI_ROUTER.getAmountsOut(1 ether, path);
-        uint256[] memory bq02 = UNI_ROUTER.getAmountsOut(2 ether, path);
+        uint256[] memory bq01 = UNI_ROUTER.getAmountsOut(100 ether, path);
+        uint256[] memory bq02 = UNI_ROUTER.getAmountsOut(200 ether, path);
         uint sellQuote0For1Wise = bq01[1];
         uint sellQuote0For2Wise = bq02[1];
         uint slippage0 = sellQuote0For2Wise - sellQuote0For1Wise;
@@ -60,29 +75,20 @@ contract MainTest is Test {
         console.log("reserveWETH: %s", reserveWETH);
         console.log("WISE Token balanceOf Pair before deposit %s", WISE.balanceOf(WISE_WETH_PAIR));
         console.log("WETH Token balanceOf Pair before deposit %s", WETH.balanceOf(WISE_WETH_PAIR));
-        console.log("WISE Token balanceOf Liquidity Provider after deposit %s", WISE.balanceOf(me));
-        console.log("WETH Token balanceOf Liquidity Provider Pair after deposit %s", WETH.balanceOf(me));
+        console.log("WISE Token balanceOf Liquidity Provider before deposit %s", WISE.balanceOf(me));
+        console.log("WETH Token balanceOf Liquidity Provider before deposit %s", WETH.balanceOf(me));
         uint256 correctRatioWETHforWISE = UNI_ROUTER.quote(
             2 ether, 
             reserveWISE,
             reserveWETH
         );
-        vm.prank(me);
-        (uint amountWISE, uint amountWETH, uint liquidityPosition) = UNI_ROUTER.addLiquidity(
-            WISE_TOKEN,
-            WETH_TOKEN,
-            2 ether,
-            correctRatioWETHforWISE,
-            2 ether,
-            correctRatioWETHforWISE,
-            me,
-            block.timestamp + 1000
-        );
-        console.log("amountWISE Deposited: %s", amountWISE);
-        console.log("amountWETH Deposited: %s", amountWETH);
-        console.log("liquidityPosition: %s", liquidityPosition);
-        assertEq(amountWISE, 2 ether);
-        assertEq(amountWETH, correctRatioWETHforWISE);
+        vm.startPrank(me);
+        WISE.transfer(WISE_WETH_PAIR, 100 ether);
+        WETH.transfer(WISE_WETH_PAIR, correctRatioWETHforWISE);
+        UNI_PAIR.mint(me);
+        vm.stopPrank();
+        vm.roll(block.number+1);
+        vm.warp(block.timestamp+15);
 
         (reserveWISE, reserveWETH, ) = UNI_PAIR.getReserves();
         console.log("reserveWISE: %s", reserveWISE);
@@ -90,17 +96,21 @@ contract MainTest is Test {
         console.log("WISE Token balanceOf Pair after deposit %s", WISE.balanceOf(WISE_WETH_PAIR));
         console.log("WETH Token balanceOf Pair after deposit %s", WETH.balanceOf(WISE_WETH_PAIR));
         console.log("WISE Token balanceOf Liquidity Provider after deposit %s", WISE.balanceOf(me));
-        console.log("WETH Token balanceOf Liquidity Provider Pair after deposit %s", WETH.balanceOf(me));
+        console.log("WETH Token balanceOf Liquidity Provider after deposit %s", WETH.balanceOf(me));
 
         // at time t_1 record the amount of money yielded for selling WISE for WETH
-        bq01 = UNI_ROUTER.getAmountsOut(1 ether, path);
-        bq02 = UNI_ROUTER.getAmountsOut(2 ether, path);
+        bq01 = UNI_ROUTER.getAmountsOut(100 ether, path);
+        bq02 = UNI_ROUTER.getAmountsOut(200 ether, path);
         uint sellQuote1For1Wise = bq01[1];
         uint sellQuote1For2Wise = bq02[1];
         uint slippage1 = sellQuote1For2Wise - sellQuote1For1Wise;
         console.log("sellQuote1For1Wise: %s", sellQuote1For1Wise);
         console.log("sellQuote1For2Wise: %s", sellQuote1For2Wise);
         console.log("slippage1: %s", slippage1);
+
+        assertFalse(sellQuote0For1Wise == sellQuote1For1Wise);
+        assertFalse(sellQuote0For2Wise == sellQuote1For2Wise);
+        assertFalse(slippage0 == slippage1);
 
     }
 
